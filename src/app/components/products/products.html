@@ -88,7 +88,7 @@
             }
           </div>
           <div class="product-actions">
-            <a routerLink="/cart" class="btn-buy">🛒 Mua</a>
+            <button type="button" class="btn-buy" (click)="addToCart(product)">🛒 Mua</button>
             <a [routerLink]="['/product', product.slug || product.id]" class="btn-detail">Chi tiết</a>
           </div>
         </div>

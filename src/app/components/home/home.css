@@ -213,6 +213,8 @@
   flex: 1;
   background: var(--orange);
   color: white;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-detail {

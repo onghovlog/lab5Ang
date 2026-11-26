@@ -3,36 +3,215 @@
 </div>
 
 <div class="cart-container">
-  <h2>🛒 Giỏ hàng của bạn</h2>
+  <div class="cart-heading">
+    <h2>🛒 Giỏ hàng của bạn</h2>
+    @if (cartService.items().length > 0) {
+      <button type="button" class="btn-clear" (click)="cartService.clearCart()">
+        Xóa tất cả
+      </button>
+    }
+  </div>
 
-  <div class="cart-item">
-    <img src="https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?w=300&auto=format&fit=crop"
-         alt="Bó hoa hồng Pastel">
-    <div class="item-info">
-      <h3>Bó hoa hồng Pastel</h3>
-      <div class="item-price">350.000đ</div>
-      <div class="quantity-control">
-        <span>Số lượng: 1</span>
+  @if (cartService.items().length === 0) {
+    <div class="empty-cart">
+      <div class="empty-icon">💐</div>
+      <h3>Giỏ hàng đang trống</h3>
+      <p>Hãy chọn những bó hoa tươi rực rỡ nhất cho người bạn yêu thương nhé!</p>
+      <a routerLink="/products" class="btn-explore">Khám phá hoa tươi →</a>
+    </div>
+  } @else {
+    @if (cartService.amountToFreeShipping() > 0) {
+      <div class="freeship-tip">
+        🚚 Mua thêm <strong>{{ cartService.formatPrice(cartService.amountToFreeShipping()) }}</strong>
+        để được <strong>Miễn phí vận chuyển</strong>!
       </div>
-    </div>
-  </div>
+    } @else {
+      <div class="freeship-tip unlocked">
+        🎉 Đơn hàng của bạn đã đủ điều kiện <strong>Miễn phí vận chuyển</strong>!
+      </div>
+    }
 
-  <div class="cart-summary">
-    <div class="row">
-      <span>Tạm tính</span>
-      <span>350.000đ</span>
-    </div>
-    <div class="row">
-      <span>Phí vận chuyển</span>
-      <span class="free">Miễn phí</span>
-    </div>
-    <div class="total-row">
-      <span>Tổng cộng</span>
-      <span class="total-price">350.000đ</span>
+    <div class="cart-list">
+      @for (item of cartService.items(); track item.product.id) {
+        <div class="cart-item">
+          <a [routerLink]="['/product', item.product.slug || item.product.id]" class="item-thumb">
+            <img [src]="item.product.image" [alt]="item.product.name" />
+          </a>
+
+          <div class="item-info">
+            <div class="item-top">
+              <a [routerLink]="['/product', item.product.slug || item.product.id]">
+                <h3>{{ item.product.name }}</h3>
+              </a>
+              <button
+                type="button"
+                class="btn-remove"
+                (click)="cartService.removeItem(item.product.id)"
+                title="Xóa sản phẩm"
+                aria-label="Xóa sản phẩm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div class="item-price">{{ item.product.price }}</div>
+
+            <div class="item-bottom">
+              <div class="quantity-control">
+                <button
+                  type="button"
+                  (click)="cartService.decreaseQty(item.product.id)"
+                  aria-label="Giảm số lượng"
+                >
+                  −
+                </button>
+                <span>{{ item.quantity }}</span>
+                <button
+                  type="button"
+                  (click)="cartService.increaseQty(item.product.id)"
+                  aria-label="Tăng số lượng"
+                >
+                  +
+                </button>
+              </div>
+              <div class="item-subtotal">
+                {{ cartService.formatPrice(item.unitPrice * item.quantity) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
 
-    <button class="btn-checkout">Tiến hành thanh toán</button>
+    <div class="cart-summary">
+      <div class="row">
+        <span>Tạm tính ({{ cartService.totalQuantity() }} sản phẩm)</span>
+        <span>{{ cartService.formatPrice(cartService.subtotal()) }}</span>
+      </div>
+      <div class="row">
+        <span>Phí vận chuyển</span>
+        @if (cartService.shippingFee() === 0) {
+          <span class="free">Miễn phí</span>
+        } @else {
+          <span>{{ cartService.formatPrice(cartService.shippingFee()) }}</span>
+        }
+      </div>
+      <div class="total-row">
+        <span>Tổng cộng</span>
+        <span class="total-price">{{ cartService.formatPrice(cartService.totalAmount()) }}</span>
+      </div>
+
+      @if (!showCheckoutForm()) {
+        @if (authService.isLoggedIn()) {
+          <button type="button" class="btn-checkout" (click)="openCheckout()">
+            Tiến hành đặt hàng
+          </button>
+        } @else {
+          <div class="login-prompt">
+            🔐 Bạn cần đăng nhập để tiến hành đặt hoa và theo dõi trạng thái đơn hàng.
+          </div>
+          <button type="button" class="btn-checkout" (click)="openCheckout()">
+            Đăng nhập để đặt hàng
+          </button>
+        }
+      }
+    </div>
+
+    @if (showCheckoutForm() && authService.isLoggedIn()) {
+      <section class="checkout-card">
+        <h3>📦 Thông tin giao hoa</h3>
+
+        @if (errorMessage()) {
+          <div class="alert-error">⚠️ {{ errorMessage() }}</div>
+        }
+
+        <form class="checkout-form" (ngSubmit)="placeOrder()">
+          <div class="form-group">
+            <label for="ship-name">Người nhận hoa *</label>
+            <input
+              id="ship-name"
+              name="fullName"
+              type="text"
+              [(ngModel)]="fullName"
+              placeholder="Họ và tên người nhận"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="ship-phone">Số điện thoại liên hệ *</label>
+            <input
+              id="ship-phone"
+              name="phone"
+              type="tel"
+              [(ngModel)]="phone"
+              placeholder="0901 234 567"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="ship-address">Địa chỉ giao hoa *</label>
+            <input
+              id="ship-address"
+              name="address"
+              type="text"
+              [(ngModel)]="address"
+              placeholder="Số nhà, đường, phường/xã, quận/huyện..."
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="ship-note">Lời chúc trên thiệp / Ghi chú giao hàng</label>
+            <textarea
+              id="ship-note"
+              name="note"
+              rows="2"
+              [(ngModel)]="note"
+              placeholder="VD: Chúc mừng sinh nhật! Giao trước 17h giúp mình..."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Phương thức thanh toán</label>
+            <div class="payment-options">
+              <label class="payment-option" [class.selected]="paymentMethod === 'cod'">
+                <input type="radio" name="paymentMethod" value="cod" [(ngModel)]="paymentMethod" />
+                <span>💵 Thanh toán khi nhận hàng (COD)</span>
+              </label>
+              <label class="payment-option" [class.selected]="paymentMethod === 'bank_transfer'">
+                <input type="radio" name="paymentMethod" value="bank_transfer" [(ngModel)]="paymentMethod" />
+                <span>🏦 Chuyển khoản ngân hàng</span>
+              </label>
+              <label class="payment-option" [class.selected]="paymentMethod === 'momo'">
+                <input type="radio" name="paymentMethod" value="momo" [(ngModel)]="paymentMethod" />
+                <span>📱 Ví điện tử MoMo</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="checkout-actions">
+            <button
+              type="button"
+              class="btn-secondary"
+              (click)="showCheckoutForm.set(false)"
+              [disabled]="isSubmitting()"
+            >
+              Quay lại
+            </button>
+            <button type="submit" class="btn-checkout" [disabled]="isSubmitting()">
+              @if (isSubmitting()) {
+                Đang xử lý...
+              } @else {
+                Xác nhận đặt hàng ({{ cartService.formatPrice(cartService.totalAmount()) }})
+              }
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
     <a routerLink="/products" class="btn-continue">← Tiếp tục mua sắm</a>
-  </div>
+  }
 </div>
-

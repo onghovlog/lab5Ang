@@ -4,4 +4,10 @@
     <router-outlet></router-outlet>
   </main>
   <app-footer></app-footer>
+
+  @if (cartService.toastMessage()) {
+    <div class="toast-banner" role="status" aria-live="polite">
+      🌸 {{ cartService.toastMessage() }}
+    </div>
+  }
 </div>

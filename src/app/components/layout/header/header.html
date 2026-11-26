@@ -3,13 +3,42 @@
     <a routerLink="/" class="logo">
       🌼 BH<span>Shop</span>
     </a>
-    <a routerLink="/cart" class="cart" aria-label="Giỏ hàng">
-      🛒
-    </a>
+
+    <div class="header-actions">
+      @if (authService.isLoggedIn()) {
+        <a routerLink="/orders" class="user-pill" [title]="authService.currentUser()?.email || ''">
+          <span class="user-avatar">👤</span>
+          <span class="user-name">{{ authService.currentUser()?.fullName }}</span>
+        </a>
+        <button
+          type="button"
+          class="btn-logout"
+          (click)="onLogout()"
+          title="Đăng xuất"
+          aria-label="Đăng xuất"
+        >
+          🚪
+        </button>
+      } @else {
+        <a routerLink="/login" class="btn-auth">Đăng nhập</a>
+      }
+
+      <a routerLink="/cart" class="cart" aria-label="Giỏ hàng">
+        🛒
+        @if (cartService.totalQuantity() > 0) {
+          <span class="cart-badge">{{ cartService.totalQuantity() }}</span>
+        }
+      </a>
+    </div>
   </div>
 
-  <form class="search" action="#" (submit)="$event.preventDefault()">
-    <input type="search" placeholder="Tìm bó hoa bạn yêu thích...">
+  <form class="search" (ngSubmit)="onSearch()">
+    <input
+      type="search"
+      name="searchQuery"
+      [(ngModel)]="searchQuery"
+      placeholder="Tìm bó hoa bạn yêu thích..."
+    />
   </form>
 </header>
 
@@ -17,19 +46,23 @@
   <a
     routerLink="/"
     routerLinkActive="active"
-    [routerLinkActiveOptions]="{ exact: true }">
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
     Trang chủ
   </a>
 
-  <a
-    routerLink="/products"
-    routerLinkActive="active">
+  <a routerLink="/products" routerLinkActive="active">
     Sản phẩm
   </a>
 
-  <a
-    routerLink="/cart"
-    routerLinkActive="active">
+  <a routerLink="/cart" routerLinkActive="active">
     Giỏ hàng
+    @if (cartService.totalQuantity() > 0) {
+      ({{ cartService.totalQuantity() }})
+    }
+  </a>
+
+  <a routerLink="/orders" routerLinkActive="active">
+    Đơn hàng
   </a>
 </nav>

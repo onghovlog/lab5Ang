@@ -1,0 +1,217 @@
+<div class="breadcrumb">
+  <a routerLink="/">Trang chủ</a> &gt; <span>Đơn hàng của tôi</span>
+</div>
+
+<section class="orders-page">
+  <!-- USER PROFILE BAR -->
+  @if (authService.currentUser(); as user) {
+    <div class="user-card">
+      <div class="user-info">
+        <div class="avatar">🌸</div>
+        <div>
+          <h2>{{ user.fullName }}</h2>
+          <p>{{ user.email }}</p>
+        </div>
+      </div>
+      <button type="button" class="btn-signout" (click)="logout()">Đăng xuất</button>
+    </div>
+  }
+
+  <div class="page-header">
+    <h1>📦 Đơn hàng của tôi</h1>
+    <span class="total-badge">{{ counts().all }} đơn</span>
+  </div>
+
+  <!-- STATUS FILTER TABS -->
+  <div class="status-tabs" role="tablist">
+    <button
+      type="button"
+      class="tab-pill"
+      [class.active]="activeTab() === 'all'"
+      (click)="selectTab('all')"
+    >
+      Tất cả <span class="tab-count">{{ counts().all }}</span>
+    </button>
+
+    @for (st of statusList; track st.code) {
+      <button
+        type="button"
+        class="tab-pill"
+        [class.active]="activeTab() === st.code"
+        (click)="selectTab(st.code)"
+      >
+        {{ st.icon }} {{ st.shortLabel }}
+        <span class="tab-count">{{ getCountForTab(st.code) }}</span>
+      </button>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert-error">⚠️ {{ errorMessage() }}</div>
+  }
+
+  @if (isLoading()) {
+    <div class="state-box">Đang tải danh sách đơn hàng...</div>
+  } @else if (orders().length === 0) {
+    <div class="empty-box">
+      <div class="empty-icon">🌷</div>
+      <h3>Chưa có đơn hàng nào</h3>
+      <p>
+        @if (activeTab() === 'all') {
+          Bạn chưa đặt bó hoa nào tại BHShop. Hãy chọn ngay một bó hoa tươi nhé!
+        } @else {
+          Hiện không có đơn hàng nào ở trạng thái "{{ getActiveTabLabel() }}".
+        }
+      </p>
+      <a routerLink="/products" class="btn-shop">Đặt hoa ngay →</a>
+    </div>
+  } @else {
+    <div class="orders-list">
+      @for (order of orders(); track order._id) {
+        @let meta = statusMap[order.status];
+        <article class="order-card">
+          <!-- CARD HEADER -->
+          <div class="order-top">
+            <div>
+              <div class="order-code">#{{ order.orderCode }}</div>
+              <div class="order-date">{{ formatDate(order.createdAt) }}</div>
+            </div>
+            <span class="status-badge status-{{ order.status }}">
+              {{ meta.icon }} {{ meta.label }}
+            </span>
+          </div>
+
+          <!-- PROGRESS STEPPER -->
+          @if (order.status !== 'cancelled') {
+            <div class="stepper">
+              @for (step of progressSteps; track step.code) {
+                <div
+                  class="step"
+                  [class.done]="meta.stepIndex > step.stepIndex"
+                  [class.current]="meta.stepIndex === step.stepIndex"
+                >
+                  <div class="step-dot">{{ meta.stepIndex >= step.stepIndex ? '✓' : step.stepIndex + 1 }}</div>
+                  <span class="step-label">{{ step.shortLabel }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="cancelled-banner">
+              ❌ Đơn hàng này đã bị hủy.
+            </div>
+          }
+
+          <!-- ITEMS LIST -->
+          <div class="order-items">
+            @for (item of order.items; track item.productId + '-' + item.name) {
+              <div class="order-item">
+                <img [src]="item.image" [alt]="item.name" />
+                <div class="item-meta">
+                  <div class="item-name">{{ item.name }}</div>
+                  <div class="item-sub">
+                    {{ item.price }} × {{ item.quantity }}
+                  </div>
+                </div>
+                <div class="item-total">{{ cartService.formatPrice(item.subtotal) }}</div>
+              </div>
+            }
+          </div>
+
+          <!-- SUMMARY -->
+          <div class="order-footer-sum">
+            <span class="payment-tag">{{ paymentLabels[order.paymentMethod] }}</span>
+            <div class="order-total">
+              Tổng: <strong>{{ cartService.formatPrice(order.totalAmount) }}</strong>
+            </div>
+          </div>
+
+          <!-- EXPANDABLE DETAILS & TIMELINE -->
+          @if (expandedOrderId() === order._id) {
+            <div class="order-detail-box">
+              <div class="detail-section">
+                <h4>📍 Thông tin nhận hoa</h4>
+                <p><strong>{{ order.shippingInfo.fullName }}</strong> • {{ order.shippingInfo.phone }}</p>
+                <p>{{ order.shippingInfo.address }}</p>
+                @if (order.shippingInfo.note) {
+                  <p class="note">💌 Ghi chú: "{{ order.shippingInfo.note }}"</p>
+                }
+                <p class="fee-line">
+                  Tạm tính: {{ cartService.formatPrice(order.subtotal) }} |
+                  Phí ship: {{ order.shippingFee === 0 ? 'Miễn phí' : cartService.formatPrice(order.shippingFee) }}
+                </p>
+              </div>
+
+              <div class="detail-section">
+                <h4>🕒 Lịch sử trạng thái</h4>
+                <ul class="timeline">
+                  @for (hist of order.statusHistory; track hist.updatedAt + hist.status) {
+                    <li>
+                      <div class="tl-head">
+                        <span class="tl-status">{{ statusMap[hist.status].icon }} {{ hist.label }}</span>
+                        <span class="tl-time">{{ formatDate(hist.updatedAt) }}</span>
+                      </div>
+                      @if (hist.note) {
+                        <div class="tl-note">{{ hist.note }}</div>
+                      }
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+
+          <!-- CANCEL REASON BOX -->
+          @if (cancellingOrderId() === order._id) {
+            <div class="cancel-box">
+              <input
+                type="text"
+                [(ngModel)]="cancelReason"
+                placeholder="Nhập lý do hủy đơn (không bắt buộc)..."
+              />
+              <div class="cancel-box-actions">
+                <button type="button" class="btn-outline" (click)="closeCancelBox()">Đóng</button>
+                <button
+                  type="button"
+                  class="btn-danger"
+                  [disabled]="updatingOrderId() === order._id"
+                  (click)="confirmCancel(order)"
+                >
+                  Xác nhận hủy
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- ACTION BUTTONS -->
+          <div class="order-actions">
+            <button type="button" class="btn-outline" (click)="toggleDetail(order._id)">
+              {{ expandedOrderId() === order._id ? 'Thu gọn ▲' : 'Chi tiết & Lịch sử ▼' }}
+            </button>
+
+            <button type="button" class="btn-reorder" (click)="reorder(order)">
+              🛒 Mua lại
+            </button>
+
+            @if (canCancel(order) && cancellingOrderId() !== order._id) {
+              <button type="button" class="btn-cancel" (click)="openCancelBox(order._id)">
+                Hủy đơn
+              </button>
+            }
+          </div>
+
+          <!-- DEMO STATUS PROGRESSION CONTROL -->
+          @if (meta.nextStatus) {
+            <button
+              type="button"
+              class="btn-advance"
+              [disabled]="updatingOrderId() === order._id"
+              (click)="advanceStatus(order)"
+            >
+              ▶ Cập nhật trạng thái: {{ meta.nextActionLabel }}
+            </button>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

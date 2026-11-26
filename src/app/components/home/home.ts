@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Product } from '../../models/product';
 import { ProductService } from '../../services/product.service';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   imports: [RouterLink],
@@ -12,6 +13,7 @@ import { ProductService } from '../../services/product.service';
 })
 export class Home implements OnInit {
   private productService = inject(ProductService);
+  private cartService = inject(CartService);
 
   // Signal chứa danh sách sản phẩm lấy từ Backend API (NodeJS + MongoDB)
   products = signal<Product[]>([]);
@@ -57,5 +59,9 @@ export class Home implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  addToCart(product: Product): void {
+    this.cartService.addToCart(product, 1);
   }
 }

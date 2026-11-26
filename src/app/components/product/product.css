@@ -113,6 +113,39 @@
   font-weight: 500;
 }
 
+.detail-qty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.qty-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qty-picker button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--orange-light);
+  color: var(--orange-dark);
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
 .detail-actions {
   display: flex;
   gap: 10px;
@@ -142,6 +175,7 @@
 .btn-buy-now {
   background: var(--orange);
   color: white;
+  border: none;
 }
 
 .back-link {
